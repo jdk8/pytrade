@@ -68,8 +68,11 @@ class Code(object):
 
 codes = []
 
-for line in open("code.csv", encoding='utf-8'):
-    codes.append(Code(line))
+try:
+    for line in open("code.csv", encoding='utf-8'):
+        codes.append(Code(line))
+except:
+    print("no code.csv found")
 
 
 def query_history_k_line(code, start_date='2019-01-01', end_date='2025-06-03', frequency="d"):
@@ -116,6 +119,49 @@ def query_history_k_line(code, start_date='2019-01-01', end_date='2025-06-03', f
     return klines
 
 
+# day must be 2023-04-06 format
+def fetch_m5_by_day(day):
+    with open("m5.tmp.csv", "w") as f:
+        for code in codes:
+            data_list = query_history_k_line(code.prefix_dot_code, start_date=day,
+                                             end_date=day, frequency="5")
+            print("data_list=", code.code_id, len(data_list))
+            day2info = {}
+            day2datalist = {}
+            for data in data_list:
+                day = data[0]
+                if day not in day2datalist:
+                    day2datalist[day] = [data]
+                else:
+                    day2datalist[day].append(data)
+            items = sorted(day2datalist.items(), key=lambda d: Code.date_str2int(d[0]))
+            for k, v in items:
+                if (len(v) != 48):
+                    print(k, v)
+                for i in range(len(v)):
+                    index2Time = {0: "-09-35", 1: "-09-40", 2: "-09-45", 3: "-09-50", 4: "-09-55",
+                                  5: "-10-00", 6: "-10-05", 7: "-10-10", 8: "-10-15", 9: "-10-20", 10: "-10-25",
+                                  11: "-10-30", 12: "-10-35", 13: "-10-40", 14: "-10-45", 15: "-10-50", 16: "-10-55",
+                                  17: "-11-00", 18: "-11-05", 19: "-11-10", 20: "-11-15", 21: "-11-20", 22: "-11-25",
+                                  23: "-11-30", 24: "-13-05", 25: "-13-10", 26: "-13-15", 27: "-13-20", 28: "-13-25",
+                                  29: "-13-30", 30: "-13-35", 31: "-13-40", 32: "-13-45", 33: "-13-50", 34: "-13-55",
+                                  35: "-14-00", 36: "-14-05", 37: "-14-10", 38: "-14-15", 39: "-14-20", 40: "-14-25",
+                                  41: "-14-30", 42: "-14-35", 43: "-14-40", 44: "-14-45", 45: "-14-50", 46: "-14-55",
+                                  47: "-15-00",
+                                  }
+                    s = v[i][0] + index2Time[i]
+                    s = s.replace("-", "")
+                    if int(s) not in day2info:
+                        f.write("%s,%s,%s,%s,%s,%s,%s\n" % (s,
+                                                            v[i][1], v[i][2], v[i][3], v[i][4], v[i][5], v[i][6]))
+                    else:
+                        sina = day2info[int(s)]
+                        f.write("%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f\n" % (s,
+                                                                      v[i][1], sina[0], sina[1], sina[2], sina[3],
+                                                                      sina[4]))
+    bs.logout()
+
+
 def fetch_m5():
     with open("m5.csv", "w") as f:
         for code in codes:
@@ -157,6 +203,43 @@ def fetch_m5():
     bs.logout()
 
 
+def fetch_m30_by_day(day):
+    with open("m30.tmp.csv", "w") as f:
+        for code in codes:
+            data_list = query_history_k_line(code.prefix_dot_code, start_date=day,
+                                             end_date=day, frequency="30")
+            print("data_list=", code.code_id, len(data_list))
+            day2info = {}
+            day2datalist = {}
+            for data in data_list:
+                day = data[0]
+                if day not in day2datalist:
+                    day2datalist[day] = [data]
+                else:
+                    day2datalist[day].append(data)
+            items = sorted(day2datalist.items(), key=lambda d: Code.date_str2int(d[0]))
+            for k, v in items:
+                if (len(v) != 8):
+                    print(k, v)
+                for i in range(len(v)):
+                    index2Time = {0: "-10-00",
+                                  1: "-10-30", 2: "-11-00", 3: "-11-30", 4: "-13-30", 5: "-14-00", 6: "-14-30",
+                                  7: "-15-00"}
+                    s = v[i][0] + index2Time[i]
+                    s = s.replace("-", "")
+                    if int(s) not in day2info:
+                        f.write("%s,%s,%s,%s,%s,%s,%s\n" % (s,
+                                                            v[i][1], v[i][2], v[i][3], v[i][4], v[i][5], v[i][6]))
+                    else:
+                        sina = day2info[int(s)]
+                        f.write("%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f\n" % (s,
+                                                                      v[i][1], sina[0], sina[1], sina[2], sina[3],
+                                                                      sina[4]))
+
+    ##\## 登出系统 ####
+    bs.logout()
+
+
 def fetch_m30():
     with open("m30.csv", "w") as f:
         for code in codes:
@@ -193,6 +276,26 @@ def fetch_m30():
     bs.logout()
 
 
+def fetch_day_by_day(day):
+    # 先进行一个拷贝，避免写错
+    with open("day.tmp.csv", "w") as f:
+        for code in codes:
+            print(code.prefix_dot_code)
+            data_list = query_history_k_line(code.prefix_dot_code, start_date=day,
+                                             end_date=day)
+            # assert data_list[-1][0] == "2021-04-19"
+            for data in data_list:
+                day = data[0]
+                code = data[1]
+                # 获取当天的分时数据
+                f.write("%s,%s,%s,%s,%s,%s,%s\n"
+                        % (day, code, data[2], data[3],
+                           data[4], data[5], data[6]))
+
+    ##\## 登出系统 ####
+    bs.logout()
+
+
 def fetch_day():
     # 先进行一个拷贝，避免写错
     with open("day.csv", "w") as f:
@@ -218,6 +321,7 @@ if __name__ == "__main__":
         if len(sys.argv) == 3:
             update_day = sys.argv[2]
             print("更新%s的数据,类型%s" % (period, update_day))
+            fetch_day_by_day(update_day)
         else:
             print("全量更新")
             fetch_day()
@@ -225,6 +329,7 @@ if __name__ == "__main__":
         if len(sys.argv) == 3:
             update_day = sys.argv[2]
             print("更新%s的数据,类型%s" % (period, update_day))
+            fetch_m30_by_day(update_day)
         else:
             print("全量更新")
             fetch_m30()
@@ -232,6 +337,7 @@ if __name__ == "__main__":
         if len(sys.argv) == 3:
             update_day = sys.argv[2]
             print("更新%s的数据,类型%s" % (period, update_day))
+            fetch_m5_by_day(update_day)
         else:
             print("全量更新")
             fetch_m5()
